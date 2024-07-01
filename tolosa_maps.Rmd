@@ -1,0 +1,77 @@
+---
+title: "Age-standardized (EU-2013 standard population) prevalence rates for censal section of Tolosa by sex, cause, and year"
+output: pdf_document
+---
+
+```{r setup, include = FALSE, echo = FALSE}
+library(rmapshaper)
+library(patchwork)
+library(tidyverse)
+library(cowplot)
+library(scales)
+library(ggpubr)
+library(sf)
+
+# aspr and map data
+load("tolosa_maps.RData")
+shape.data <- sf::st_read("eusk/SECCIONES_EUSTAT_5000_ETRS89.shp")
+
+# how to plot maps
+plot_units <- expand_grid(sex       = unique(plot_data$sex),
+                          condition = unique(plot_data$condition),
+                          year      = unique(plot_data$year))
+```
+
+
+```{r, echo=FALSE, results='asis', fig.align='center', fig.height=11, fig.width=8, fig.dpi=300}
+
+for(i in 1:nrow(plot_units)) {
+  
+  print(
+    plot_data %>%
+      filter(sex       == plot_units$sex[i],
+             condition == plot_units$condition[i],
+             year      == plot_units$year[i]) %>%
+      left_join(shape.data,by = join_by(SEC_MUNI_D, SEC_SECC, SEC_DIST)) %>%
+      ggplot() +
+      scale_fill_viridis_c(option = "inferno", 
+                           breaks = pretty_breaks(n = 8)) +
+      geom_sf(
+        aes(geometry = geometry, fill = aspr * 1000),
+        color = "white",
+        size  = 0.1
+      ) +
+      theme_map() +
+      labs(title = str_c(
+        plot_units$sex[i],
+        ", ",
+        plot_units$condition[i],
+        ", ",
+        plot_units$year[i],
+        ", ASPR per 1000"
+      )) +
+      theme(
+        legend.direction     = "horizontal",
+        legend.position      = "bottom",
+        legend.justification = "center",
+        legend.key.size      = unit(1, 'cm'),
+        legend.key.width     = unit(1, 'cm'),
+        legend.background    = element_blank(),
+        legend.title         = element_blank(),
+        legend.text          = element_text(size = 10, color = "white"),
+        plot.title           = element_text(
+          size = 12,
+          color = "white",
+          hjust = 0.5,
+          face = "bold"
+        ),
+        plot.margin          = unit(c(1, 1, 1, 1), "cm"),
+        plot.background      = element_rect(fill  = 'gray20', color = NA),
+        panel.background     = element_rect(fill  = 'gray10', color = NA),
+        panel.grid           = element_blank()
+      )
+  )
+  cat("\n\n\\pagebreak\n")
+}
+```
+
